@@ -4,7 +4,7 @@
 
 # Grupo 84:
 # 99261 Juliana Marcelino
-# 99236 Inês Pissarra
+# 99236 Inês Pissarra -
 
 import sys
 from search import (
