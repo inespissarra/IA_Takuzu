@@ -35,22 +35,49 @@ class TakuzuState:
 class Board:
     """Representação interna de um tabuleiro de Takuzu."""
 
+    def __init__(self, n):
+        self.size = n
+        self.board = []
+        pass
+
+    def __str__(self):
+        s = ""
+        for i in self.board:
+            s += " ".join(i)
+        return s
+
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
-        # TODO
-        pass
+        return self.board[row][col]
 
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
-        # TODO
-        pass
+        
+        if row - 1 < 0:
+            x = None
+        else:
+            x = self.board[row - 1][col]
+        if row + 1 >= self.size:
+            y = None
+        else:
+            y = self.board[row + 1][col]
+    
+        return (x, y)
 
     def adjacent_horizontal_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        # TODO
-        pass
+        if col + 1 >= self.size:
+            x = None
+        else:
+            x = self.board[row][col + 1]
+        if col - 1 < 0:
+            y = None
+        else:
+            y = self.board[row][col - 1]
+        return (x, y)
+            
 
     @staticmethod
     def parse_instance_from_stdin():
@@ -63,8 +90,17 @@ class Board:
             > from sys import stdin
             > stdin.readline()
         """
-        # TODO
-        pass
+        from sys import stdin
+        n = int(stdin.readline())
+
+        a = Board(n)
+
+        for i in range(n):
+            row = stdin.readline()
+            line = [int(element) for element in row.split("\t")]
+            a.board += [line]
+
+        return a
 
     # TODO: outros metodos da classe
 
@@ -72,7 +108,7 @@ class Board:
 class Takuzu(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        # TODO
+        self.board = board
         pass
 
     def actions(self, state: TakuzuState):
@@ -110,4 +146,12 @@ if __name__ == "__main__":
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
     # Imprimir para o standard output no formato indicado.
+    board = Board.parse_instance_from_stdin()
+
+    print("Initial:\n", board, sep="")
+    # Imprimir valores adjacentes
+    print(board.adjacent_vertical_numbers(3, 3))
+    print(board.adjacent_horizontal_numbers(3, 3))
+    print(board.adjacent_vertical_numbers(1, 1))
+    print(board.adjacent_horizontal_numbers(1, 1))
     pass

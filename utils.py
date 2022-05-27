@@ -12,8 +12,6 @@ from itertools import chain, combinations
 from statistics import mean
 
 import numpy as np
-
-
 # ______________________________________________________________________________
 # Functions on Sequences and Iterables
 
