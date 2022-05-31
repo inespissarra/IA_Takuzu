@@ -29,6 +29,9 @@ class TakuzuState:
     def __lt__(self, other):
         return self.id < other.id
 
+    def get_board(self):
+        return self.board
+
     # TODO: outros metodos da classe
 
 
@@ -43,12 +46,27 @@ class Board:
     def __str__(self):
         s = ""
         for i in self.board:
-            s += " ".join(i)
+            line = [str(element) for element in i]
+            s += " ".join(line)
+            s+="\n"
         return s
 
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
         return self.board[row][col]
+
+    def get_size(self):
+        return self.size
+
+    def set_number(self, row: int, col: int, number: int):
+        self.board[row][col] = number
+        pass
+
+    def duplicate(self):
+        new_board = Board(self.size)
+        for i in self.board:
+            new_board.board += [i.copy()]
+        return new_board
 
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente abaixo e acima,
@@ -108,29 +126,43 @@ class Board:
 class Takuzu(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        self.board = board
+        self.initial = TakuzuState(board)
         pass
 
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        # TODO
-        pass
+        l = []
+        n = state.get_board().get_size()
+        for i in range(n):
+            for j in range(n):
+                if state.get_board().get_number(i, j) == 2:
+                    l += [(i, j, 0)] + [(i, j, 1)]
+        return l
 
     def result(self, state: TakuzuState, action):
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        # TODO
-        pass
+        if action in self.actions(state):
+            actual_board = state.get_board()
+            next_board = actual_board.duplicate()
+            next_board.set_number(action[0], action[1], action[2])
+            new_state = TakuzuState(next_board)
+            return new_state
 
     def goal_test(self, state: TakuzuState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
-        # TODO
-        pass
+        n = state.get_board().get_size()
+        for i in range(n):
+            for j in range(n):
+                if state.get_board().get_number(i, j) == 2:
+                    return False
+        return True
+        
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
@@ -150,8 +182,8 @@ if __name__ == "__main__":
 
     print("Initial:\n", board, sep="")
     # Imprimir valores adjacentes
-    print(board.adjacent_vertical_numbers(3, 3))
-    print(board.adjacent_horizontal_numbers(3, 3))
-    print(board.adjacent_vertical_numbers(1, 1))
-    print(board.adjacent_horizontal_numbers(1, 1))
+    problem = Takuzu(board)
+    goal_node = depth_first_tree_search(problem)
+    print("Is goal?", problem.goal_test(goal_node.state))
+    print("Solution:\n", goal_node.state.board, sep="")
     pass
