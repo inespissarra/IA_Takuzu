@@ -72,28 +72,28 @@ class Board:
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
         
-        if row - 1 < 0:
+        if row + 1 >= self.size:
             x = None
         else:
-            x = self.board[row - 1][col]
-        if row + 1 >= self.size:
+            x = self.board[row + 1][col]
+        if row - 1 < 0:
             y = None
         else:
-            y = self.board[row + 1][col]
+            y = self.board[row - 1][col]
     
         return (x, y)
 
     def adjacent_horizontal_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        if col + 1 >= self.size:
+        if col - 1 < 0:
             x = None
         else:
-            x = self.board[row][col + 1]
-        if col - 1 < 0:
+            x = self.board[row][col - 1]
+        if col + 1 >= self.size:
             y = None
         else:
-            y = self.board[row][col - 1]
+            y = self.board[row][col + 1]
         return (x, y)
             
 
@@ -111,17 +111,52 @@ class Board:
         from sys import stdin
         n = int(stdin.readline())
 
-        a = Board(n)
+        b = Board(n)
 
         for i in range(n):
             row = stdin.readline()
             line = [int(element) for element in row.split("\t")]
-            a.board += [line]
+            b.board += [line]
 
-        return a
+        return b
 
     # TODO: outros metodos da classe
 
+def restr(board: Board, row: int, col: int, value: int):
+    return rest1(board, row, col, value)
+
+def rest1(board: Board, row: int, col: int, value: int):
+    down, up, left, right = 0, 0, 0, 0
+    (adj_down, adj_up) = board.adjacent_vertical_numbers(row, col)
+    (adj_left, adj_right) = board.adjacent_horizontal_numbers(row, col)
+    if isinstance(adj_down, int) and (adj_down == value):
+        down += 1
+        (adj_dd, trash) = board.adjacent_vertical_numbers(row + 1, col)
+        if isinstance(adj_dd, int) and (adj_dd == adj_down):
+            down +=1 
+    if isinstance(adj_up, int) and (adj_up == value):
+        up += 1
+        (trash, adj_uu) = board.adjacent_vertical_numbers(row - 1, col)
+        if isinstance(adj_uu, int) and (adj_uu == adj_up):
+            up += 1
+    if isinstance(adj_left, int) and (adj_left == value):
+        left += 1
+        (adj_ll, trash) = board.adjacent_horizontal_numbers(row, col - 1)
+        if isinstance(adj_ll, int) and (adj_ll == adj_left):
+            left += 1
+    if isinstance(adj_right, int) and (adj_right == value):
+        right += 1
+        (trash, adj_rr) = board.adjacent_horizontal_numbers(row, col + 1)
+        if isinstance(adj_rr, int) and (adj_rr == adj_right):
+            right += 1
+    return down < 2 and up < 2 and right < 2 and left < 2 and (up == 0 or down == 0) and (left == 0 or right == 0)
+
+def rest2():
+    pass
+def rest3():
+    pass
+def rest4():
+    pass
 
 class Takuzu(Problem):
     def __init__(self, board: Board):
@@ -133,11 +168,15 @@ class Takuzu(Problem):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
         l = []
-        n = state.get_board().get_size()
+        board = state.get_board()
+        n = board.get_size()
         for i in range(n):
             for j in range(n):
-                if state.get_board().get_number(i, j) == 2:
-                    l += [(i, j, 0)] + [(i, j, 1)]
+                if board.get_number(i, j) == 2:
+                    if restr(board, i, j, 0):
+                        l += [(i, j, 0)]
+                    if restr(board, i, j, 1):
+                        l += [(i, j, 1)]
         return l
 
     def result(self, state: TakuzuState, action):
@@ -167,9 +206,7 @@ class Takuzu(Problem):
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
         # TODO
-        pass
-
-    # TODO: outros metodos da classe
+        pass   
 
 
 if __name__ == "__main__":
@@ -181,9 +218,11 @@ if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
 
     print("Initial:\n", board, sep="")
-    # Imprimir valores adjacentes
     problem = Takuzu(board)
+    # Imprimir valores adjacentes
     goal_node = depth_first_tree_search(problem)
     print("Is goal?", problem.goal_test(goal_node.state))
+    print(problem.actions(problem.initial))
+    print("Solution:\n", board, sep="")
     print("Solution:\n", goal_node.state.board, sep="")
     pass
