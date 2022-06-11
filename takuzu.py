@@ -151,7 +151,7 @@ def rest1(board: Board, row: int, col: int, value: int):
             right += 1
     return down < 2 and up < 2 and right < 2 and left < 2 and (up == 0 or down == 0) and (left == 0 or right == 0)
 
-def rest2():
+def rest2(board: Board, row: int, col: int, value: int):
     pass
 def rest3():
     pass
@@ -206,7 +206,7 @@ class Takuzu(Problem):
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
         # TODO
-        pass   
+        pass
 
 
 if __name__ == "__main__":
