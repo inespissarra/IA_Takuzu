@@ -50,6 +50,13 @@ class Board:
             s += " ".join(line)
             s+="\n"
         return s
+    
+    def get_rows(self):
+       return self.board
+
+    def get_cols(self):
+        #tenho quase a certeza q ha uma funçao no utils que faz isto, tenho de procurar
+        pass
 
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -123,7 +130,7 @@ class Board:
     # TODO: outros metodos da classe
 
 def restr(board: Board, row: int, col: int, value: int):
-    return rest1(board, row, col, value)
+    return rest1(board, row, col, value) and rest2(board, row, col, value)
 
 def rest1(board: Board, row: int, col: int, value: int):
     down, up, left, right = 0, 0, 0, 0
@@ -152,9 +159,38 @@ def rest1(board: Board, row: int, col: int, value: int):
     return down < 2 and up < 2 and right < 2 and left < 2 and (up == 0 or down == 0) and (left == 0 or right == 0)
 
 def rest2(board: Board, row: int, col: int, value: int):
-    pass
-def rest3():
-    pass
+    lines = board.get_rows().copy()
+    our_row = lines[row]
+    del lines[row]
+    size = len(lines)
+    for i in range(size):
+        count = 0
+        for j in range(size):
+            if (i == row and j == col and value == lines[i][j]) or (our_row[j] != 2 and our_row[j] == lines[i][j]):
+                count += 1
+            else:
+                break
+        if count == board.get_size():
+            return False
+    return True
+
+def rest3(board: Board, row: int, col: int, value: int):
+    #copy paste do anterior, rever
+    lines = board.get_cols().copy()
+    our_col = lines[col]
+    del lines[col]
+    size = len(lines)
+    for i in range(size):
+        count = 0
+        for j in range(size):
+            if (i == row and j == col and value == lines[i][j]) or (our_col[j] != 2 and our_col[j] == lines[i][j]):
+                count += 1
+            else:
+                break
+        if count == board.get_size():
+            return False
+    return True
+
 def rest4():
     pass
 
