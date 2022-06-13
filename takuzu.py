@@ -174,6 +174,8 @@ def rest1(board: Board, row: int, col: int, value: int):
     down, up, left, right = 0, 0, 0, 0
     (adj_down, adj_up) = board.adjacent_vertical_numbers(row, col)
     (adj_left, adj_right) = board.adjacent_horizontal_numbers(row, col)
+    if (adj_down == adj_up and adj_up != value) or (adj_left == adj_right and adj_right != value):
+        return True 
     if isinstance(adj_down, int) and (adj_down == value):
         down += 1
         (adj_dd, trash) = board.adjacent_vertical_numbers(row + 1, col)
@@ -340,6 +342,6 @@ if __name__ == "__main__":
     # Imprimir valores adjacentes
     goal_node = depth_first_tree_search(problem)
     #print("Is goal?", problem.goal_test(goal_node.state))
-    print("Solution:\n", board, sep="")
-    #print(goal_node.state.board, sep="")
+    #print("Solution:\n", board, sep="")
+    print(goal_node.state.board, sep="")
     pass
