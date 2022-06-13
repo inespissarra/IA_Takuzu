@@ -194,7 +194,9 @@ def rest1(board: Board, row: int, col: int, value: int):
         (trash, adj_rr) = board.adjacent_horizontal_numbers(row, col + 1)
         if isinstance(adj_rr, int) and (adj_rr == adj_right):
             right += 1
+
     return down < 2 and up < 2 and right < 2 and left < 2 and (up == 0 or down == 0) and (left == 0 or right == 0)
+
 
 def rest2(board: Board, row: int, col: int, value: int):
     lines = board.get_rows().copy()
@@ -304,8 +306,23 @@ class Takuzu(Problem):
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
-        
         pass
+
+
+    #so para experimentar
+    def prop_rest(self):
+        board = self.initial.board
+        n = board.size
+        for i in range(n):
+            for j in range(n):
+                if board.get_number(i, j) == 2:
+                    a = self.action(board, i, j)
+                    if len(a)==1:
+                        board.set_number(a[0][0], a[0][1], a[0][2]) # recursivo?
+                        board.num_rows[a[0][0]][a[0][2]] += 1
+                        board.num_cols[a[0][1]][a[0][2]] += 1
+        pass
+                
 
 
 if __name__ == "__main__":
@@ -316,12 +333,13 @@ if __name__ == "__main__":
     # Imprimir para o standard output no formato indicado.
     board = Board.parse_instance_from_stdin()
     problem = Takuzu(board)
+    problem.prop_rest()
 
     #print("Initial:\n", board, sep="")
     
     # Imprimir valores adjacentes
     goal_node = depth_first_tree_search(problem)
     #print("Is goal?", problem.goal_test(goal_node.state))
-    #print("Solution:\n", board, sep="")
-    print(goal_node.state.board, sep="")
+    print("Solution:\n", board, sep="")
+    #print(goal_node.state.board, sep="")
     pass
