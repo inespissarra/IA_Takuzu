@@ -7,6 +7,7 @@
 # 99236 Inês Pissarra
 
 import sys
+import numpy as np
 from search import (
     Problem,
     Node,
@@ -16,7 +17,6 @@ from search import (
     greedy_search,
     recursive_best_first_search,
 )
-
 
 class TakuzuState:
     state_id = 0
@@ -41,23 +41,54 @@ class Board:
     def __init__(self, n):
         self.size = n
         self.board = []
+        self.num_rows = []
+        self.num_cols = []
         pass
 
     def __str__(self):
         s = ""
         for i in self.board:
             line = [str(element) for element in i]
-            s += " ".join(line)
+            s += "\t".join(line)
             s+="\n"
         return s
-    
+
+    def row_quantity(self):
+        quantity = []
+        rows = self.get_rows()
+        for i in range(self.size):
+            zero, one, two = 0, 0, 0
+            for j in range(self.size):
+                if rows[i][j] == 0:
+                    zero += 1
+                elif rows[i][j] == 1:
+                    one += 1
+                else:
+                    two += 1
+            quantity += [[zero, one, two]]
+        return quantity
+
+    def col_quantity(self):
+        quantity = []
+        cols = self.get_cols()
+        for i in range(self.size):
+            zero, one, two = 0, 0, 0
+            for j in range(self.size):
+                if cols[i][j] == 0:
+                    zero += 1
+                elif cols[i][j] == 1:
+                    one += 1
+                else:
+                    two += 1
+            quantity += [[zero, one, two]]
+        return quantity
+
     def get_rows(self):
        return self.board
 
     def get_cols(self):
-        #tenho quase a certeza q ha uma funçao no utils que faz isto, tenho de procurar
-        pass
-
+        return np.array(self.board).T.tolist()
+       
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
         return self.board[row][col]
@@ -67,12 +98,13 @@ class Board:
 
     def set_number(self, row: int, col: int, number: int):
         self.board[row][col] = number
-        pass
 
     def duplicate(self):
         new_board = Board(self.size)
         for i in self.board:
             new_board.board += [i.copy()]
+        new_board.num_cols = self.num_cols
+        new_board.num_rows = self.num_rows
         return new_board
 
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
@@ -125,12 +157,15 @@ class Board:
             line = [int(element) for element in row.split("\t")]
             b.board += [line]
 
+        b.num_rows = b.row_quantity()
+        b.num_cols = b.col_quantity()
+
         return b
 
     # TODO: outros metodos da classe
 
 def restr(board: Board, row: int, col: int, value: int):
-    return rest1(board, row, col, value) and rest2(board, row, col, value)
+    return rest1(board, row, col, value) and rest2(board, row, col, value) and rest3(board, row, col, value) and rest4(board, row, col, value)
 
 def rest1(board: Board, row: int, col: int, value: int):
     down, up, left, right = 0, 0, 0, 0
@@ -175,7 +210,6 @@ def rest2(board: Board, row: int, col: int, value: int):
     return True
 
 def rest3(board: Board, row: int, col: int, value: int):
-    #copy paste do anterior, rever
     lines = board.get_cols().copy()
     our_col = lines[col]
     del lines[col]
@@ -191,8 +225,8 @@ def rest3(board: Board, row: int, col: int, value: int):
             return False
     return True
 
-def rest4():
-    pass
+def rest4(board: Board, row: int, col: int, value: int):
+    return (board.num_cols[col][value] + 1) <= np.ceil(board.size/2) and (board.num_rows[row][value] + 1) <= np.ceil(board.size/2)
 
 class Takuzu(Problem):
     def __init__(self, board: Board):
@@ -206,13 +240,22 @@ class Takuzu(Problem):
         l = []
         board = state.get_board()
         n = board.get_size()
+        
         for i in range(n):
             for j in range(n):
                 if board.get_number(i, j) == 2:
-                    if restr(board, i, j, 0):
-                        l += [(i, j, 0)]
-                    if restr(board, i, j, 1):
-                        l += [(i, j, 1)]
+                    l2 = self.action(board, i, j)
+                    if l2 == []:
+                        return []
+                    l += l2
+        return l
+    
+    def action(self, board: Board, row: int, col: int): #acoes para posicao
+        l = []
+        if restr(board, row, col, 0):
+            l += [(row, col, 0)]
+        if restr(board, row, col, 1):
+            l += [(row, col, 1)]
         return l
 
     def result(self, state: TakuzuState, action):
@@ -220,12 +263,23 @@ class Takuzu(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        if action in self.actions(state):
-            actual_board = state.get_board()
-            next_board = actual_board.duplicate()
-            next_board.set_number(action[0], action[1], action[2])
-            new_state = TakuzuState(next_board)
-            return new_state
+        actual_board = state.get_board()
+        next_board = actual_board.duplicate()
+        next_board.set_number(action[0], action[1], action[2])
+        
+        for i in range(next_board.size):
+            if next_board.get_number(i, action[1]) == 2:
+                a = self.action(next_board, i, action[1])
+                if len(a)==1:
+                    next_board.set_number(a[0][0], a[0][1], a[0][2]) # recursivo?
+        for j in range(next_board.size):
+            if next_board.get_number(i, action[0]) == 2:
+                a = self.action(next_board, j, action[0])
+                if len(a)==1:
+                    next_board.set_number(a[0][0], a[0][1], a[0][2]) # recursivo?
+
+        new_state = TakuzuState(next_board)
+        return new_state
 
     def goal_test(self, state: TakuzuState):
         """Retorna True se e só se o estado passado como argumento é
@@ -241,7 +295,7 @@ class Takuzu(Problem):
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
-        # TODO
+        
         pass
 
 
@@ -252,13 +306,13 @@ if __name__ == "__main__":
     # Retirar a solução a partir do nó resultante,
     # Imprimir para o standard output no formato indicado.
     board = Board.parse_instance_from_stdin()
-
-    print("Initial:\n", board, sep="")
     problem = Takuzu(board)
+
+    #print("Initial:\n", board, sep="")
+    
     # Imprimir valores adjacentes
     goal_node = depth_first_tree_search(problem)
-    print("Is goal?", problem.goal_test(goal_node.state))
-    print(problem.actions(problem.initial))
-    print("Solution:\n", board, sep="")
-    print("Solution:\n", goal_node.state.board, sep="")
+    #print("Is goal?", problem.goal_test(goal_node.state))
+    #print("Solution:\n", board, sep="")
+    print(goal_node.state.board, sep="")
     pass
