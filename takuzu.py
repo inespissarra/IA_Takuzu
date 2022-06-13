@@ -47,10 +47,11 @@ class Board:
 
     def __str__(self):
         s = ""
-        for i in self.board:
-            line = [str(element) for element in i]
+        for i in range(self.size):
+            line = [str(element) for element in self.board[i]]
             s += "\t".join(line)
-            s+="\n"
+            if i != self.size-1:
+                s+="\n"
         return s
 
     def row_quantity(self):
@@ -103,8 +104,10 @@ class Board:
         new_board = Board(self.size)
         for i in self.board:
             new_board.board += [i.copy()]
-        new_board.num_cols = self.num_cols
-        new_board.num_rows = self.num_rows
+        for i in self.num_cols:
+            new_board.num_cols += [i.copy()]
+        for i in self.num_rows:
+            new_board.num_rows += [i.copy()]
         return new_board
 
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
@@ -266,17 +269,23 @@ class Takuzu(Problem):
         actual_board = state.get_board()
         next_board = actual_board.duplicate()
         next_board.set_number(action[0], action[1], action[2])
+        next_board.num_rows[action[0]][action[2]] += 1
+        next_board.num_cols[action[1]][action[2]] += 1
         
         for i in range(next_board.size):
             if next_board.get_number(i, action[1]) == 2:
                 a = self.action(next_board, i, action[1])
                 if len(a)==1:
                     next_board.set_number(a[0][0], a[0][1], a[0][2]) # recursivo?
+                    next_board.num_rows[a[0][0]][a[0][2]] += 1
+                    next_board.num_cols[a[0][1]][a[0][2]] += 1
         for j in range(next_board.size):
             if next_board.get_number(i, action[0]) == 2:
                 a = self.action(next_board, j, action[0])
                 if len(a)==1:
                     next_board.set_number(a[0][0], a[0][1], a[0][2]) # recursivo?
+                    next_board.num_rows[a[0][0]][a[0][2]] += 1
+                    next_board.num_cols[a[0][1]][a[0][2]] += 1
 
         new_state = TakuzuState(next_board)
         return new_state
