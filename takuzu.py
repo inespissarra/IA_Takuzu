@@ -174,8 +174,6 @@ def rest1(board: Board, row: int, col: int, value: int):
     down, up, left, right = 0, 0, 0, 0
     (adj_down, adj_up) = board.adjacent_vertical_numbers(row, col)
     (adj_left, adj_right) = board.adjacent_horizontal_numbers(row, col)
-    if (adj_down == adj_up and adj_up != value) or (adj_left == adj_right and adj_right != value):
-        return True 
     if isinstance(adj_down, int) and (adj_down == value):
         down += 1
         (adj_dd, trash) = board.adjacent_vertical_numbers(row + 1, col)
@@ -263,6 +261,7 @@ class Takuzu(Problem):
             l += [(row, col, 0)]
         if restr(board, row, col, 1):
             l += [(row, col, 1)]
+
         return l
 
     def result(self, state: TakuzuState, action):
@@ -276,20 +275,7 @@ class Takuzu(Problem):
         next_board.num_rows[action[0]][action[2]] += 1
         next_board.num_cols[action[1]][action[2]] += 1
         
-        for i in range(next_board.size):
-            if next_board.get_number(i, action[1]) == 2:
-                a = self.action(next_board, i, action[1])
-                if len(a)==1:
-                    next_board.set_number(a[0][0], a[0][1], a[0][2]) # recursivo?
-                    next_board.num_rows[a[0][0]][a[0][2]] += 1
-                    next_board.num_cols[a[0][1]][a[0][2]] += 1
-        for j in range(next_board.size):
-            if next_board.get_number(i, action[0]) == 2:
-                a = self.action(next_board, j, action[0])
-                if len(a)==1:
-                    next_board.set_number(a[0][0], a[0][1], a[0][2]) # recursivo?
-                    next_board.num_rows[a[0][0]][a[0][2]] += 1
-                    next_board.num_cols[a[0][1]][a[0][2]] += 1
+        self.prop_rest(next_board, [action])
 
         new_state = TakuzuState(next_board)
         return new_state
@@ -312,9 +298,10 @@ class Takuzu(Problem):
 
 
     #so para experimentar
-    def prop_rest(self):
+    def prop_rest_init(self):
         board = self.initial.board
         n = board.size
+        alt = []
         for i in range(n):
             for j in range(n):
                 if board.get_number(i, j) == 2:
@@ -323,6 +310,29 @@ class Takuzu(Problem):
                         board.set_number(a[0][0], a[0][1], a[0][2]) # recursivo?
                         board.num_rows[a[0][0]][a[0][2]] += 1
                         board.num_cols[a[0][1]][a[0][2]] += 1
+                        alt += a
+        self.prop_rest(board, alt)
+        pass
+
+    def prop_rest(self, board: Board, alt: list):
+        while alt!=[]:
+            next = alt.pop()
+            for i in range(board.size):
+                if board.get_number(i, next[1]) == 2:
+                    a = self.action(board, i, next[1])
+                    if len(a)==1:
+                        board.set_number(a[0][0], a[0][1], a[0][2])
+                        board.num_rows[a[0][0]][a[0][2]] += 1
+                        board.num_cols[a[0][1]][a[0][2]] += 1
+                        alt += a
+            for j in range(board.size):
+                if board.get_number(next[0], j) == 2:
+                    a = self.action(board, next[0], j)
+                    if len(a)==1:
+                        board.set_number(a[0][0], a[0][1], a[0][2])
+                        board.num_rows[a[0][0]][a[0][2]] += 1
+                        board.num_cols[a[0][1]][a[0][2]] += 1
+                        alt += a
         pass
                 
 
@@ -335,13 +345,9 @@ if __name__ == "__main__":
     # Imprimir para o standard output no formato indicado.
     board = Board.parse_instance_from_stdin()
     problem = Takuzu(board)
-    problem.prop_rest()
-
-    #print("Initial:\n", board, sep="")
+    problem.prop_rest_init()
     
     # Imprimir valores adjacentes
     goal_node = depth_first_tree_search(problem)
-    #print("Is goal?", problem.goal_test(goal_node.state))
-    #print("Solution:\n", board, sep="")
     print(goal_node.state.board, sep="")
     pass
