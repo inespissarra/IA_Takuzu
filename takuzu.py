@@ -171,7 +171,7 @@ class Board:
     # TODO: outros metodos da classe
 
 def restr(board: Board, row: int, col: int, value: int):
-    return rest1(board, row, col, value) and rest4(board, row, col, value) and rest2(board, row, col, value) and rest3(board, row, col, value)
+    return rest4(board, row, col, value) and rest1(board, row, col, value) and rest2(board, row, col, value) and rest3(board, row, col, value)
 
 def rest1(board: Board, row: int, col: int, value: int):
     down, up, left, right = 0, 0, 0, 0
@@ -256,7 +256,7 @@ class Takuzu(Problem):
                     l += l2
         return l
     
-    def pos_actions(self, board: Board, row: int, col: int): #acoes para posicao
+    def pos_actions(self, board: Board, row: int, col: int):
         l = []
         if restr(board, row, col, 0):
             l += [(row, col, 0)]
@@ -293,7 +293,17 @@ class Takuzu(Problem):
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
-        pass
+        h = 0
+        for line in node.state.board.num_rows:
+            h += line[2]
+        if isinstance(node.action, tuple):
+            vertical = node.state.board.adjacent_vertical_numbers(node.action[0], node.action[1])
+            horizontal = node.state.board.adjacent_horizontal_numbers(node.action[0], node.action[1])
+            for i in (vertical + horizontal):
+                if i==2:
+                    h-=1
+        
+        return h
 
     def prop_rest_init(self):
         board = self.initial.board
@@ -337,9 +347,13 @@ if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     problem = Takuzu(board)
     problem.prop_rest_init()
+
+    #print(board)
     
     # Imprimir valores adjacentes
-    goal_node = greedy_search(problem)
+    #goal_node = greedy_search(problem)
     #goal_node = depth_first_tree_search(problem)
+    goal_node = astar_search(problem)
+    #print(goal_node.state.id)
     print(goal_node.state.board, sep="", end = "")
     pass
