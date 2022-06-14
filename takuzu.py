@@ -50,8 +50,7 @@ class Board:
         for i in range(self.size):
             line = [str(element) for element in self.board[i]]
             s += "\t".join(line)
-            if i != self.size-1:
-                s+="\n"
+            s+="\n"
         return s
 
     def row_quantity(self):
@@ -99,6 +98,10 @@ class Board:
 
     def set_number(self, row: int, col: int, number: int):
         self.board[row][col] = number
+        self.num_rows[row][number] += 1
+        self.num_rows[row][2] -= 1
+        self.num_cols[col][number] += 1
+        self.num_cols[col][2] -= 1
 
     def duplicate(self):
         new_board = Board(self.size)
@@ -168,7 +171,7 @@ class Board:
     # TODO: outros metodos da classe
 
 def restr(board: Board, row: int, col: int, value: int):
-    return rest1(board, row, col, value) and rest2(board, row, col, value) and rest3(board, row, col, value) and rest4(board, row, col, value)
+    return rest1(board, row, col, value) and rest4(board, row, col, value) and rest2(board, row, col, value) and rest3(board, row, col, value)
 
 def rest1(board: Board, row: int, col: int, value: int):
     down, up, left, right = 0, 0, 0, 0
@@ -198,36 +201,34 @@ def rest1(board: Board, row: int, col: int, value: int):
     return down < 2 and up < 2 and right < 2 and left < 2 and (up == 0 or down == 0) and (left == 0 or right == 0)
 
 
-def rest2(board: Board, row: int, col: int, value: int):
-    lines = board.get_rows().copy()
-    our_row = lines[row]
-    del lines[row]
-    size = len(lines)
-    for i in range(size):
-        count = 0
-        for j in range(size):
-            if (i == row and j == col and value == lines[i][j]) or (our_row[j] != 2 and our_row[j] == lines[i][j]):
-                count += 1
-            else:
-                break
-        if count == board.get_size():
-            return False
+def rest2(b: Board, row: int, col: int, value: int):
+    if b.num_rows[row][2]==1:
+        size = b.get_size()
+        for i in range(size):
+            if b.num_rows[i][2]==0 and i!=row:
+                count = 0
+                for j in range(size):
+                    if (b.board[row][j] == b.board[i][j]) or (j == col and value == b.board[i][j]):
+                        count += 1
+                    else:
+                        break
+                if count == size:
+                    return False
     return True
 
-def rest3(board: Board, row: int, col: int, value: int):
-    lines = board.get_cols().copy()
-    our_col = lines[col]
-    del lines[col]
-    size = len(lines)
-    for i in range(size):
-        count = 0
-        for j in range(size):
-            if (i == row and j == col and value == lines[i][j]) or (our_col[j] != 2 and our_col[j] == lines[i][j]):
-                count += 1
-            else:
-                break
-        if count == board.get_size():
-            return False
+def rest3(b: Board, row: int, col: int, value: int):
+    if b.num_cols[col][2]==1:
+        size = b.get_size()
+        for i in range(size):
+            if b.num_cols[i][2]==0:
+                count = 0
+                for j in range(size):
+                    if (b.board[j][col] == b.board[j][i]) or (j == row and value == b.board[j][i]):
+                        count += 1
+                    else:
+                        break
+                if count == size:
+                    return False
     return True
 
 def rest4(board: Board, row: int, col: int, value: int):
@@ -249,13 +250,13 @@ class Takuzu(Problem):
         for i in range(n):
             for j in range(n):
                 if board.get_number(i, j) == 2:
-                    l2 = self.action(board, i, j)
+                    l2 = self.pos_actions(board, i, j)
                     if l2 == []:
                         return []
                     l += l2
         return l
     
-    def action(self, board: Board, row: int, col: int): #acoes para posicao
+    def pos_actions(self, board: Board, row: int, col: int): #acoes para posicao
         l = []
         if restr(board, row, col, 0):
             l += [(row, col, 0)]
@@ -272,8 +273,6 @@ class Takuzu(Problem):
         actual_board = state.get_board()
         next_board = actual_board.duplicate()
         next_board.set_number(action[0], action[1], action[2])
-        next_board.num_rows[action[0]][action[2]] += 1
-        next_board.num_cols[action[1]][action[2]] += 1
         
         self.prop_rest(next_board, [action])
 
@@ -296,8 +295,6 @@ class Takuzu(Problem):
         """Função heuristica utilizada para a procura A*."""
         pass
 
-
-    #so para experimentar
     def prop_rest_init(self):
         board = self.initial.board
         n = board.size
@@ -305,11 +302,9 @@ class Takuzu(Problem):
         for i in range(n):
             for j in range(n):
                 if board.get_number(i, j) == 2:
-                    a = self.action(board, i, j)
+                    a = self.pos_actions(board, i, j)
                     if len(a)==1:
-                        board.set_number(a[0][0], a[0][1], a[0][2]) # recursivo?
-                        board.num_rows[a[0][0]][a[0][2]] += 1
-                        board.num_cols[a[0][1]][a[0][2]] += 1
+                        board.set_number(a[0][0], a[0][1], a[0][2])
                         alt += a
         self.prop_rest(board, alt)
         pass
@@ -319,19 +314,15 @@ class Takuzu(Problem):
             next = alt.pop()
             for i in range(board.size):
                 if board.get_number(i, next[1]) == 2:
-                    a = self.action(board, i, next[1])
+                    a = self.pos_actions(board, i, next[1])
                     if len(a)==1:
                         board.set_number(a[0][0], a[0][1], a[0][2])
-                        board.num_rows[a[0][0]][a[0][2]] += 1
-                        board.num_cols[a[0][1]][a[0][2]] += 1
                         alt += a
             for j in range(board.size):
                 if board.get_number(next[0], j) == 2:
-                    a = self.action(board, next[0], j)
+                    a = self.pos_actions(board, next[0], j)
                     if len(a)==1:
                         board.set_number(a[0][0], a[0][1], a[0][2])
-                        board.num_rows[a[0][0]][a[0][2]] += 1
-                        board.num_cols[a[0][1]][a[0][2]] += 1
                         alt += a
         pass
                 
@@ -348,6 +339,7 @@ if __name__ == "__main__":
     problem.prop_rest_init()
     
     # Imprimir valores adjacentes
-    goal_node = depth_first_tree_search(problem)
-    print(goal_node.state.board, sep="")
+    goal_node = greedy_search(problem)
+    #goal_node = depth_first_tree_search(problem)
+    print(goal_node.state.board, sep="", end = "")
     pass
