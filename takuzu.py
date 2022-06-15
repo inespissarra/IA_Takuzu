@@ -9,6 +9,7 @@
 import sys
 import numpy as np
 from search import (
+    InstrumentedProblem,
     Problem,
     Node,
     astar_search,
@@ -21,8 +22,9 @@ from search import (
 class TakuzuState:
     state_id = 0
 
-    def __init__(self, board):
+    def __init__(self, board, next_actions):
         self.board = board
+        self.next_actions = next_actions
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
 
@@ -43,7 +45,6 @@ class Board:
         self.board = []
         self.num_rows = []
         self.num_cols = []
-        pass
 
     def __str__(self):
         s = ""
@@ -55,13 +56,12 @@ class Board:
 
     def row_quantity(self):
         quantity = []
-        rows = self.get_rows()
         for i in range(self.size):
             zero, one, two = 0, 0, 0
             for j in range(self.size):
-                if rows[i][j] == 0:
+                if self.board[i][j] == 0:
                     zero += 1
-                elif rows[i][j] == 1:
+                elif self.board[i][j] == 1:
                     one += 1
                 else:
                     two += 1
@@ -70,24 +70,17 @@ class Board:
 
     def col_quantity(self):
         quantity = []
-        cols = self.get_cols()
         for i in range(self.size):
             zero, one, two = 0, 0, 0
             for j in range(self.size):
-                if cols[i][j] == 0:
+                if self.board[j][i] == 0:
                     zero += 1
-                elif cols[i][j] == 1:
+                elif self.board[j][i] == 1:
                     one += 1
                 else:
                     two += 1
             quantity += [[zero, one, two]]
         return quantity
-
-    def get_rows(self):
-       return self.board
-
-    def get_cols(self):
-        return np.array(self.board).T.tolist()
        
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -116,7 +109,6 @@ class Board:
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
-        
         if row + 1 >= self.size:
             x = None
         else:
@@ -168,12 +160,15 @@ class Board:
 
         return b
 
-    # TODO: outros metodos da classe
 
+# restrições
 def restr(board: Board, row: int, col: int, value: int):
-    return rest4(board, row, col, value) and rest1(board, row, col, value) and rest2(board, row, col, value) and rest3(board, row, col, value)
+    return rest1(board, row, col, value) and rest2(board, row, col, value) and rest3(board, row, col, value) and rest4(board, row, col, value)
 
 def rest1(board: Board, row: int, col: int, value: int):
+    return (board.num_cols[col][value] + 1) <= np.ceil(board.size/2) and (board.num_rows[row][value] + 1) <= np.ceil(board.size/2)
+
+def rest2(board: Board, row: int, col: int, value: int):
     down, up, left, right = 0, 0, 0, 0
     (adj_down, adj_up) = board.adjacent_vertical_numbers(row, col)
     (adj_left, adj_right) = board.adjacent_horizontal_numbers(row, col)
@@ -200,15 +195,14 @@ def rest1(board: Board, row: int, col: int, value: int):
 
     return down < 2 and up < 2 and right < 2 and left < 2 and (up == 0 or down == 0) and (left == 0 or right == 0)
 
-
-def rest2(b: Board, row: int, col: int, value: int):
+def rest3(b: Board, row: int, col: int, value: int):
     if b.num_rows[row][2]==1:
         size = b.get_size()
         for i in range(size):
-            if b.num_rows[i][2]==0 and i!=row:
+            if b.num_rows[i][2]==0:
                 count = 0
                 for j in range(size):
-                    if (b.board[row][j] == b.board[i][j]) or (j == col and value == b.board[i][j]):
+                    if (b.get_number(row, j) ==b.get_number(i, j)) or (j == col and value == b.get_number(i, j)):
                         count += 1
                     else:
                         break
@@ -216,14 +210,14 @@ def rest2(b: Board, row: int, col: int, value: int):
                     return False
     return True
 
-def rest3(b: Board, row: int, col: int, value: int):
+def rest4(b: Board, row: int, col: int, value: int):
     if b.num_cols[col][2]==1:
         size = b.get_size()
         for i in range(size):
             if b.num_cols[i][2]==0:
                 count = 0
                 for j in range(size):
-                    if (b.board[j][col] == b.board[j][i]) or (j == row and value == b.board[j][i]):
+                    if (b.get_number(j, col) == b.get_number(j, i)) or (j == row and value == b.get_number(j, i)):
                         count += 1
                     else:
                         break
@@ -231,30 +225,29 @@ def rest3(b: Board, row: int, col: int, value: int):
                     return False
     return True
 
-def rest4(board: Board, row: int, col: int, value: int):
-    return (board.num_cols[col][value] + 1) <= np.ceil(board.size/2) and (board.num_rows[row][value] + 1) <= np.ceil(board.size/2)
 
 class Takuzu(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        self.initial = TakuzuState(board)
-        pass
+        next_actions = self.prop_rest_init(board)
+        self.initial = TakuzuState(board, next_actions)
 
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        l = []
-        board = state.get_board()
-        n = board.get_size()
-        
-        for i in range(n):
-            for j in range(n):
-                if board.get_number(i, j) == 2:
-                    l2 = self.pos_actions(board, i, j)
-                    if l2 == []:
-                        return []
-                    l += l2
-        return l
+        if isinstance(state.next_actions, list) and state.next_actions != []:
+            return state.next_actions
+        elif isinstance(state.next_actions, list):
+            board = state.get_board()
+            n = board.get_size()
+            
+            for i in range(n): 
+                if board.num_rows[i][2]!=0:
+                    for j in range(n):
+                        if board.get_number(i, j) == 2:
+                            return [(i, j, 0), (i, j, 1)]
+        else:
+            return []
     
     def pos_actions(self, board: Board, row: int, col: int):
         l = []
@@ -274,9 +267,9 @@ class Takuzu(Problem):
         next_board = actual_board.duplicate()
         next_board.set_number(action[0], action[1], action[2])
         
-        self.prop_rest(next_board, [action])
+        next_actions = self.prop_rest(next_board, [action])
 
-        new_state = TakuzuState(next_board)
+        new_state = TakuzuState(next_board, next_actions)
         return new_state
 
     def goal_test(self, state: TakuzuState):
@@ -285,11 +278,9 @@ class Takuzu(Problem):
         estão preenchidas com uma sequência de números adjacentes."""
         n = state.get_board().get_size()
         for i in range(n):
-            for j in range(n):
-                if state.get_board().get_number(i, j) == 2:
-                    return False
+            if state.get_board().num_rows[i][2] != 0:
+                return False
         return True
-        
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
@@ -305,36 +296,46 @@ class Takuzu(Problem):
         
         return h
 
-    def prop_rest_init(self):
-        board = self.initial.board
+    def prop_rest_init(self, board: Board):
         n = board.size
         alt = []
         for i in range(n):
-            for j in range(n):
-                if board.get_number(i, j) == 2:
-                    a = self.pos_actions(board, i, j)
-                    if len(a)==1:
-                        board.set_number(a[0][0], a[0][1], a[0][2])
-                        alt += a
-        self.prop_rest(board, alt)
-        pass
+            if board.num_cols[i][2]!=0:
+                for j in range(n):
+                    if board.get_number(i, j) == 2:
+                        a = self.pos_actions(board, i, j)
+                        if len(a)==1:
+                            board.set_number(a[0][0], a[0][1], a[0][2])
+                            alt += a
+        return self.prop_rest(board, alt)
 
     def prop_rest(self, board: Board, alt: list):
         while alt!=[]:
+            next_actions = []
             next = alt.pop()
-            for i in range(board.size):
-                if board.get_number(i, next[1]) == 2:
-                    a = self.pos_actions(board, i, next[1])
-                    if len(a)==1:
-                        board.set_number(a[0][0], a[0][1], a[0][2])
-                        alt += a
-            for j in range(board.size):
-                if board.get_number(next[0], j) == 2:
-                    a = self.pos_actions(board, next[0], j)
-                    if len(a)==1:
-                        board.set_number(a[0][0], a[0][1], a[0][2])
-                        alt += a
-        pass
+            if board.num_cols[next[1]][2]!=0:
+                for i in range(board.size):
+                    if board.get_number(i, next[1]) == 2:
+                        a = self.pos_actions(board, i, next[1])
+                        if len(a)==0:
+                            return None
+                        elif len(a)==1:
+                            board.set_number(a[0][0], a[0][1], a[0][2])
+                            alt += a
+                        else:
+                            next_actions = a
+            if board.num_rows[next[0]][2]!=0:
+                for j in range(board.size):
+                    if board.get_number(next[0], j) == 2:
+                        a = self.pos_actions(board, next[0], j)
+                        if len(a)==0:
+                            return None
+                        elif len(a)==1:
+                            board.set_number(a[0][0], a[0][1], a[0][2])
+                            alt += a
+                        else:
+                            next_actions = a
+        return next_actions
                 
 
 
@@ -346,14 +347,13 @@ if __name__ == "__main__":
     # Imprimir para o standard output no formato indicado.
     board = Board.parse_instance_from_stdin()
     problem = Takuzu(board)
-    problem.prop_rest_init()
 
-    #print(board)
+    problem = InstrumentedProblem(problem)
     
-    # Imprimir valores adjacentes
     #goal_node = greedy_search(problem)
-    #goal_node = depth_first_tree_search(problem)
-    goal_node = astar_search(problem)
-    #print(goal_node.state.id)
+    #goal_node = breadth_first_tree_search(problem)
+    goal_node = depth_first_tree_search(problem)
+    #goal_node = astar_search(problem)
+    #print("gerados:", problem.states)
+    #print("expandidos:", problem.succs)
     print(goal_node.state.board, sep="", end = "")
-    pass
