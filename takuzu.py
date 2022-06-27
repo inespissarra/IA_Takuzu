@@ -287,12 +287,6 @@ class Takuzu(Problem):
         h = 0
         for line in node.state.board.num_rows:
             h += line[2]
-        if isinstance(node.action, tuple):
-            vertical = node.state.board.adjacent_vertical_numbers(node.action[0], node.action[1])
-            horizontal = node.state.board.adjacent_horizontal_numbers(node.action[0], node.action[1])
-            for i in (vertical + horizontal):
-                if i==2:
-                    h-=1
         
         return h
 
@@ -340,11 +334,6 @@ class Takuzu(Problem):
 
 
 if __name__ == "__main__":
-    # TODO:
-    # Ler o ficheiro do standard input,
-    # Usar uma técnica de procura para resolver a instância,
-    # Retirar a solução a partir do nó resultante,
-    # Imprimir para o standard output no formato indicado.
     board = Board.parse_instance_from_stdin()
     problem = Takuzu(board)
 
