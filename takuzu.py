@@ -294,7 +294,7 @@ class Takuzu(Problem):
         n = board.size
         alt = []
         for i in range(n):
-            if board.num_cols[i][2]!=0:
+            if board.num_rows[i][2]!=0:
                 for j in range(n):
                     if board.get_number(i, j) == 2:
                         a = self.pos_actions(board, i, j)
